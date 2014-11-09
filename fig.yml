@@ -1,0 +1,13 @@
+registry:
+  image: registry
+  hostname: registry
+  domainname: registry
+  ports:
+   - 5000:5000
+nginx:
+  build: nginx
+  ports:
+   - 5080:5080
+   - 5443:5443
+  links:
+   - registry:registry

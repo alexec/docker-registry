@@ -1,0 +1,58 @@
+# FYI: Chunking requires nginx-extras package on Debian Wheezy and some Ubuntu versions
+# See chunking http://wiki.nginx.org/HttpChunkinModule
+# Replace with appropriate values where necessary
+
+upstream docker-registry {
+  server registry:5000;
+}
+
+# uncomment if you want a 301 redirect for users attempting to connect
+# on port 5080
+# NOTE: docker client will still fail. This is just for convenience
+server {
+    listen 5080;
+    server_name nginx;
+
+  client_max_body_size 0; # disable any limits to avoid HTTP 413 for large image uploads
+
+  # required to avoid HTTP 411: see Issue #1486 (https://github.com/docker/docker/issues/1486)
+  chunked_transfer_encoding on;
+
+  location / {
+    auth_basic            "Restricted";
+    auth_basic_user_file  nginx.htpasswd;
+    include               registry.conf;
+  }
+
+  location /_ping {
+    auth_basic off;
+    include               registry.conf;
+  }
+}
+
+server {
+  listen 5443;
+  server_name nginx;
+
+  ssl on;
+    ssl_certificate      /etc/nginx/certs/server.crt;
+    ssl_certificate_key  /etc/nginx/certs/server.key;
+    ssl_client_certificate /etc/nginx/certs/ca.crt;
+    ssl_verify_client optional;
+
+  client_max_body_size 0; # disable any limits to avoid HTTP 413 for large image uploads
+
+  # required to avoid HTTP 411: see Issue #1486 (https://github.com/docker/docker/issues/1486)
+  chunked_transfer_encoding on;
+
+  location / {
+    auth_basic            "Restricted";
+    auth_basic_user_file  nginx.htpasswd;
+    include               nginx.conf;
+  }
+
+  location /_ping {
+    auth_basic off;
+    include               nginx.conf;
+  }
+}
